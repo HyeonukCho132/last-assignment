@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include "ls_command.h"
+#include "cat_command.h"
 
 #define MAX_LINE 80
 #define MAX_ARGS 10
@@ -41,6 +48,34 @@ int main()
         } else if (strcmp(argv[0], "pwd") == 0){
             getcwd(input, MAX_LINE);
             printf("%s\n", input);
+        } else if (strcmp(argv[0], "ls") == 0){
+            my_ls();
+        } else if (strcmp(argv[0], "cat") == 0){
+            // your command
+            my_cat(argv[1]);
+        }else {
+            if (access(argv[0], X_OK) == 0) {
+                pid_t pid = fork();
+
+                if(pid == -1) {
+                    //fork 실패
+                    perror("fork failed");
+                    exit(1);
+                }
+                else if(pid == 0){
+                    //자식 프로세스에서 외부 명령어 실행
+                    if(execv(argv[0], argv) == -1) {
+                        //execv 실패 시
+                        perror("command not found");
+                        exit(1);
+                    }
+                }
+                else{
+                    wait(NULL);
+                }
+            }else{
+                printf("command not found: %s\n", argv[0]);
+            }
         }
     }
     
